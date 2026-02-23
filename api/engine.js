@@ -1,10 +1,8 @@
 module.exports = async function handler(req, res) {
-    // 1. Only allow POST requests
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    // 2. Check for the API Key in Vercel Environment Variables
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
         return res.status(500).json({ error: 'Server configuration error: Missing API Key' });
@@ -35,7 +33,8 @@ module.exports = async function handler(req, res) {
 
             const imagenPrompt = `Draft a clean, 2D architectural schematic blueprint from a top-down view. Stark white background, highly technical sharp black structural lines only. No shadows, no cars, no trees. Layout geometry to follow: ${extractedGeometry}`;
 
-            const imagenRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`, {
+            // SWITCHED TO IMAGEN 3.0 (Publicly available for billed accounts)
+            const imagenRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -45,7 +44,14 @@ module.exports = async function handler(req, res) {
             });
 
             const imagenData = await imagenRes.json();
-            if (imagenData.error) throw new Error("Drafting Error: " + imagenData.error.message);
+            
+            // Smart Error Handler for Google's Sync Delay
+            if (imagenData.error) {
+                if (imagenData.error.message.includes("billed users")) {
+                    throw new Error("Google Cloud is currently syncing your new billing account. This usually takes 1-2 hours. Please try again later today!");
+                }
+                throw new Error("Drafting Error: " + imagenData.error.message);
+            }
             
             return res.status(200).json({ image: imagenData.predictions[0].bytesBase64Encoded });
         }
