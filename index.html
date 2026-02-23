@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blue Site | Architectural Engine</title>
+    <title>Blue Site | Multi-Drafting Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <script>
@@ -34,8 +34,6 @@
             background-size: 40px 40px; 
             font-family: 'Inter', sans-serif;
             color: #e2e8f0;
-            height: 100vh;
-            overflow: hidden;
         }
 
         .font-mono { font-family: 'JetBrains Mono', monospace; }
@@ -49,7 +47,7 @@
 
         .tech-border::before, .tech-border::after {
             content: ''; position: absolute; width: 12px; height: 12px;
-            border: 3px solid var(--accent-yellow); transition: all 0.3s ease;
+            border: 3px solid var(--accent-yellow); transition: all 0.3s ease; pointer-events: none;
         }
         .tech-border::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
         .tech-border::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
@@ -65,9 +63,9 @@
         }
     </style>
 </head>
-<body class="flex flex-col h-full selection:bg-brand-yellow selection:text-brand-navy">
+<body class="flex flex-col h-screen selection:bg-brand-yellow selection:text-brand-navy overflow-hidden">
 
-    <header class="flex-none p-6 border-b border-white/10 bg-brand-blue/90 backdrop-blur-md z-40">
+    <header class="flex-none p-6 border-b border-white/10 bg-brand-blue/90 backdrop-blur-md z-40 shadow-lg">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 bg-white flex items-center justify-center rounded overflow-hidden p-1 border border-white/10 shadow-lg">
@@ -85,216 +83,347 @@
         </div>
     </header>
 
-    <main class="flex-grow relative overflow-hidden flex items-center justify-center p-6 gap-6">
+    <main class="flex-grow overflow-y-auto custom-scrollbar p-6 flex flex-col items-center relative">
         
-        <div id="ai-intelligence-panel" class="hidden w-80 h-full max-h-[800px] flex flex-col tech-border rounded-lg overflow-hidden border-brand-yellow/30 bg-brand-panel z-30 shadow-2xl transition-all duration-300">
-            <div class="p-4 border-b border-brand-yellow/20 bg-brand-darkBlue/50 flex items-center justify-between">
-                <h3 class="font-mono text-xs font-bold text-brand-yellow uppercase tracking-widest">✨ Site Intelligence</h3>
-                <button onclick="togglePanel('ai-intelligence-panel')" class="text-white/30 hover:text-white transition-colors">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
+        <!-- MAIN UPLOAD AND STAGING WINDOW -->
+        <div class="w-full max-w-5xl h-[450px] flex-shrink-0 relative z-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] tech-border rounded-lg overflow-hidden flex flex-col mb-10 bg-brand-panel">
+            
+            <!-- Upload Zone -->
+            <div id="upload-zone" class="absolute inset-0 flex flex-col items-center justify-center transition-all duration-500 z-10 cursor-pointer hover:bg-brand-darkBlue/50" onclick="document.getElementById('file-input').click()">
+                <input type="file" id="file-input" class="hidden" accept="image/*" onchange="handleFileSelect(event)">
+                <div class="w-24 h-24 mb-6 rounded-full bg-brand-yellow/5 border-2 border-dashed border-brand-yellow/30 flex items-center justify-center text-brand-yellow/50 transition-all duration-300">
+                    <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                </div>
+                <h2 class="text-2xl font-mono text-white mb-2 font-bold uppercase tracking-widest">Initialize Upload</h2>
+                <p class="text-brand-yellow/60 text-sm mb-8 font-mono">Satellite / Site Imagery Required</p>
+                <button class="px-10 py-4 bg-brand-yellow text-brand-navy font-mono font-bold text-sm uppercase hover:bg-white transition-all shadow-xl">Select File</button>
             </div>
-            <div id="ai-report-content" class="p-4 flex-grow overflow-y-auto custom-scrollbar font-mono text-[11px] text-white/80 leading-relaxed"></div>
-        </div>
 
-        <div class="flex-grow w-full max-w-5xl h-full max-h-[800px] flex flex-col relative z-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] tech-border rounded-lg overflow-hidden">
-            <div class="flex-grow relative blueprint-grid flex flex-col items-center justify-center min-h-[500px]">
+            <!-- Staging Zone (Hidden initially) -->
+            <div id="staging-zone" class="hidden absolute inset-0 flex flex-col bg-brand-panel z-20">
+                <!-- X Cancel Button -->
+                <button onclick="clearStagedImage(); event.stopPropagation();" class="absolute top-6 right-6 w-12 h-12 bg-black/60 border-2 border-white/20 hover:border-red-500 hover:bg-red-500/20 text-white rounded-full flex items-center justify-center transition-all z-50 group shadow-lg backdrop-blur-sm" title="Remove Image">
+                    <svg class="w-6 h-6 group-hover:rotate-90 transition-transform duration-300 text-white group-hover:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
                 
-                <div id="upload-zone" class="absolute inset-0 flex flex-col items-center justify-center transition-all duration-500 z-20 cursor-pointer bg-brand-panel/50 hover:bg-brand-panel/80" onclick="document.getElementById('file-input').click()">
-                    <input type="file" id="file-input" class="hidden" accept="image/*" onchange="handleFileSelect(event)">
-                    <div class="w-24 h-24 mb-6 rounded-full bg-brand-yellow/5 border-2 border-dashed border-brand-yellow/30 flex items-center justify-center text-brand-yellow/50 hover:text-brand-yellow hover:border-brand-yellow transition-all duration-300">
-                        <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-                    </div>
-                    <h2 class="text-2xl font-mono text-white mb-2 font-bold uppercase tracking-widest">Initialize Upload</h2>
-                    <p class="text-brand-yellow/60 text-sm mb-8 font-mono">Satellite / Site Imagery Required</p>
-                    <button class="px-10 py-4 bg-brand-yellow text-brand-navy font-mono font-bold text-sm uppercase hover:bg-white transition-all shadow-xl">Select File</button>
-                </div>
-
-                <div id="image-container" class="absolute inset-0 flex hidden">
-                    <div class="absolute inset-0 bg-contain bg-no-repeat bg-center opacity-40" id="img-original"></div>
-                    <div class="absolute inset-0 bg-contain bg-no-repeat bg-center bg-brand-panel transition-opacity duration-1000 border-r-2 border-brand-yellow" id="img-processed" style="width: 50%; opacity: 0;">
-                        <div class="absolute bottom-4 left-4 bg-brand-yellow text-brand-navy px-2 py-1 font-mono text-[10px] font-bold uppercase shadow-lg">Schematic View</div>
-                    </div>
-                    <div class="absolute top-0 bottom-0 w-1 bg-transparent cursor-ew-resize hover:bg-brand-yellow/50 transition-colors z-30 hidden" style="left: 50%;" id="slider-handle">
-                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-brand-yellow rounded-full flex items-center justify-center shadow-[0_0_15px_#fbbf24] border-2 border-white">
-                            <svg class="w-4 h-4 text-brand-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" transform="rotate(90 12 12)" /></svg>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="generate-overlay" class="absolute inset-x-0 bottom-0 p-6 flex items-end justify-center bg-gradient-to-t from-brand-darkBlue via-brand-darkBlue/90 to-transparent z-20 pointer-events-none hidden">
-                     <button onclick="handleEngineRequest('generate')" class="pointer-events-auto px-8 py-4 bg-brand-cyan hover:bg-white text-brand-navy font-mono font-bold tracking-widest uppercase transition-all shadow-[0_0_20px_rgba(34,211,238,0.4)] hover:scale-105 active:scale-95">
+                <div class="flex-grow bg-contain bg-no-repeat bg-center opacity-80 m-6 rounded blueprint-grid border border-white/5" id="staged-img-preview"></div>
+                
+                <div class="absolute inset-x-0 bottom-0 p-8 flex items-end justify-center bg-gradient-to-t from-brand-darkBlue via-brand-darkBlue/80 to-transparent z-30 pointer-events-none">
+                    <button onclick="startGeneration(); event.stopPropagation();" class="pointer-events-auto px-10 py-5 bg-brand-cyan hover:bg-white text-brand-navy font-mono font-bold tracking-[0.2em] text-lg uppercase transition-all shadow-[0_0_30px_rgba(34,211,238,0.4)] hover:scale-105 active:scale-95 border-2 border-transparent hover:border-brand-cyan">
                         Generate ✨ Schematic
                     </button>
                 </div>
-
-                <div id="loading-text" class="absolute inset-0 bg-brand-panel/95 z-40 flex flex-col items-center justify-center hidden">
-                    <div class="w-16 h-16 border-4 border-brand-yellow/20 border-t-brand-yellow rounded-full animate-spin mb-4 shadow-[0_0_20px_rgba(251,191,36,0.3)]"></div>
-                    <p class="font-mono text-brand-yellow animate-pulse tracking-[0.3em] uppercase text-sm font-bold">✨ Neural Drafting...</p>
-                    <p class="font-mono text-white/50 text-xs mt-2 uppercase tracking-tighter" id="loading-subtext">Communicating with secure engine...</p>
-                </div>
-            </div>
-
-            <div class="flex-none h-16 bg-brand-darkBlue border-t border-white/10 flex items-center justify-between px-6 z-50">
-                <div class="flex items-center gap-4 text-[10px] font-mono">
-                    <span class="text-white/40 uppercase tracking-widest">Status: <span class="text-white font-bold" id="status-dims">AWAITING INPUT</span></span>
-                    <button id="intelligence-btn" onclick="handleEngineRequest('intel')" class="hidden text-brand-yellow hover:text-white uppercase font-bold tracking-widest transition-colors flex items-center gap-1">
-                        ✨ Run Site Intelligence
-                    </button>
-                </div>
-                <div class="flex gap-3">
-                    <button id="reset-btn" onclick="resetApp()" class="hidden px-6 py-2 border border-white/20 text-white font-mono font-bold text-xs uppercase hover:bg-white/10 transition-all">New Project</button>
-                    <button id="download-btn" class="hidden px-6 py-2 bg-brand-yellow text-brand-navy font-mono font-bold text-xs uppercase hover:bg-white transition-all shadow-lg">Download PDF</button>
-                </div>
             </div>
         </div>
 
-        <div id="ai-chat-bubble" class="hidden absolute bottom-24 right-10 w-80 h-[400px] flex flex-col tech-border rounded-lg overflow-hidden border-brand-cyan/40 bg-brand-panel z-50 shadow-2xl transition-all duration-300">
-            <div class="p-3 border-b border-brand-cyan/20 bg-brand-darkBlue/50 flex items-center justify-between">
-                <h3 class="font-mono text-[10px] font-bold text-brand-cyan uppercase tracking-[0.2em]">✨ Architectural Consultant</h3>
-                <button onclick="togglePanel('ai-chat-bubble')" class="text-white/30 hover:text-white">
-                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-            </div>
-            <div id="chat-messages" class="p-4 flex-grow overflow-y-auto custom-scrollbar font-mono text-[11px] text-white/70 space-y-3">
-                <div class="p-2 border border-brand-cyan/10 bg-brand-cyan/5 rounded text-brand-cyan/90">DraftVision v1 ready. How can I assist with this site schematic?</div>
-            </div>
-            <div class="p-2 border-t border-white/5 bg-brand-darkBlue">
-                <div class="flex gap-2">
-                    <input type="text" id="chat-input" placeholder="Ask about the site..." class="flex-grow bg-white/5 border border-white/10 rounded px-2 py-1 text-[11px] font-mono text-white focus:outline-none focus:border-brand-cyan/50" onkeypress="if(event.key==='Enter') handleEngineRequest('chat')">
-                    <button onclick="handleEngineRequest('chat')" class="bg-brand-cyan/20 border border-brand-cyan/50 text-brand-cyan p-1 hover:bg-brand-cyan/40 transition-all rounded">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-                    </button>
-                </div>
-            </div>
+        <!-- GENERATION QUEUE (Cards inject dynamically here) -->
+        <div id="generation-queue" class="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8 hidden pb-20">
+            <!-- Dynamic Cards Go Here -->
         </div>
-
-        <button id="chat-trigger-btn" onclick="togglePanel('ai-chat-bubble')" class="hidden fixed bottom-6 right-10 w-12 h-12 bg-brand-cyan hover:bg-white text-brand-navy rounded-full shadow-[0_0_20px_#22d3ee55] flex items-center justify-center transition-all hover:scale-110 z-50">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-        </button>
 
     </main>
 
-    <footer class="flex-none p-4 bg-brand-darkBlue/80 border-t border-white/5 flex justify-between items-center text-[9px] font-mono text-white/30 uppercase tracking-[0.2em] z-50">
+    <footer class="flex-none p-4 bg-brand-darkBlue/80 border-t border-white/5 flex justify-between items-center text-[9px] font-mono text-white/30 uppercase tracking-[0.2em] z-50 shadow-[0_-10px_20px_rgba(0,0,0,0.3)]">
          <div>© 2024 Cincinnati Air Conditioning Company</div>
          <div>Lead Architect: <span class="text-brand-yellow font-bold">Maxwell Starr</span></div>
     </footer>
 
-    <script>
-        let currentBase64 = null;
+    <!-- FLOATING AI PANELS -->
+    <div id="ai-intelligence-panel" class="hidden fixed top-24 left-6 w-80 h-[calc(100vh-8rem)] flex flex-col tech-border rounded-lg overflow-hidden border-brand-yellow/30 bg-brand-panel z-[100] shadow-2xl transition-all duration-300">
+        <div class="p-4 border-b border-brand-yellow/20 bg-brand-darkBlue/50 flex items-center justify-between">
+            <h3 class="font-mono text-xs font-bold text-brand-yellow uppercase tracking-widest">✨ Site Intelligence</h3>
+            <button onclick="document.getElementById('ai-intelligence-panel').classList.add('hidden')" class="text-white/30 hover:text-white transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div id="ai-report-content" class="p-4 flex-grow overflow-y-auto custom-scrollbar font-mono text-[11px] text-white/80 leading-relaxed"></div>
+    </div>
 
-        const ui = {
-            uploadZone: document.getElementById('upload-zone'), imgContainer: document.getElementById('image-container'),
-            imgOriginal: document.getElementById('img-original'), imgProcessed: document.getElementById('img-processed'),
-            generateOverlay: document.getElementById('generate-overlay'), loadingText: document.getElementById('loading-text'),
-            sliderHandle: document.getElementById('slider-handle'), status: document.getElementById('status-dims'),
-            intelBtn: document.getElementById('intelligence-btn'), intelPanel: document.getElementById('ai-intelligence-panel'),
-            intelContent: document.getElementById('ai-report-content'), resetBtn: document.getElementById('reset-btn'),
-            downloadBtn: document.getElementById('download-btn'), chatBtn: document.getElementById('chat-trigger-btn'),
-            chatBubble: document.getElementById('ai-chat-bubble'), chatMessages: document.getElementById('chat-messages'),
-            chatInput: document.getElementById('chat-input')
-        };
+    <div id="ai-chat-bubble" class="hidden fixed bottom-6 right-6 w-80 h-[400px] flex flex-col tech-border rounded-lg overflow-hidden border-brand-cyan/40 bg-brand-panel z-[100] shadow-2xl transition-all duration-300">
+        <div class="p-3 border-b border-brand-cyan/20 bg-brand-darkBlue/50 flex items-center justify-between">
+            <h3 class="font-mono text-[10px] font-bold text-brand-cyan uppercase tracking-[0.2em]">✨ Consultant AI</h3>
+            <button onclick="document.getElementById('ai-chat-bubble').classList.add('hidden')" class="text-white/30 hover:text-white">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div id="chat-messages" class="p-4 flex-grow overflow-y-auto custom-scrollbar font-mono text-[11px] text-white/70 space-y-3">
+            <div class="p-2 border border-brand-cyan/10 bg-brand-cyan/5 rounded text-brand-cyan/90">DraftVision ready. Please select a schematic card to begin chat.</div>
+        </div>
+        <div class="p-2 border-t border-white/5 bg-brand-darkBlue">
+            <div class="flex gap-2">
+                <input type="text" id="chat-input" placeholder="Ask about the site..." class="flex-grow bg-white/5 border border-white/10 rounded px-2 py-1 text-[11px] font-mono text-white focus:outline-none focus:border-brand-cyan/50" onkeypress="if(event.key==='Enter') sendChatMessage()">
+                <button onclick="sendChatMessage()" class="bg-brand-cyan/20 border border-brand-cyan/50 text-brand-cyan p-1 hover:bg-brand-cyan/40 transition-all rounded">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <button id="chat-trigger-btn" onclick="document.getElementById('ai-chat-bubble').classList.remove('hidden')" class="hidden fixed bottom-6 right-6 w-12 h-12 bg-brand-cyan hover:bg-white text-brand-navy rounded-full shadow-[0_0_20px_#22d3ee55] flex items-center justify-center transition-all hover:scale-110 z-50">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+    </button>
+
+    <script>
+        let stagedBase64 = null;
+        let generationCount = 0;
+        
+        // Stores data for all active processing cards securely in memory
+        const generationData = {}; 
+        let activeAnalysisImage = null; // Currently targeted image for Chat/Intel
 
         function handleFileSelect(e) {
             const file = e.target.files[0];
             if (file && file.type.startsWith('image/')) {
                 const reader = new FileReader();
                 reader.onload = (ev) => {
-                    currentBase64 = ev.target.result.split(',')[1];
-                    ui.imgOriginal.style.backgroundImage = `url(${ev.target.result})`;
-                    ui.uploadZone.classList.add('hidden');
-                    ui.imgContainer.classList.remove('hidden');
-                    ui.generateOverlay.classList.remove('hidden');
-                    ui.status.innerText = 'IMAGE LOADED';
-                    ui.status.className = 'text-white font-bold';
+                    stagedBase64 = ev.target.result.split(',')[1];
+                    document.getElementById('staged-img-preview').style.backgroundImage = `url(${ev.target.result})`;
+                    document.getElementById('upload-zone').classList.add('hidden');
+                    document.getElementById('staging-zone').classList.remove('hidden');
                 };
                 reader.readAsDataURL(file);
             }
         }
 
-        async function handleEngineRequest(action) {
-            if (!currentBase64) return;
+        function clearStagedImage() {
+            stagedBase64 = null;
+            document.getElementById('file-input').value = ""; // Clear file buffer
+            document.getElementById('upload-zone').classList.remove('hidden');
+            document.getElementById('staging-zone').classList.add('hidden');
+            document.getElementById('staged-img-preview').style.backgroundImage = 'none';
+        }
+
+        async function startGeneration() {
+            if (!stagedBase64) return;
             
-            let query = '';
+            const currentImage = stagedBase64;
+            const currentBgUrl = document.getElementById('staged-img-preview').style.backgroundImage;
+            
+            // 1. Instantly clear main window for the next upload
+            clearStagedImage();
 
-            // Setup UI based on action
-            if (action === 'generate') {
-                ui.generateOverlay.classList.add('hidden');
-                ui.loadingText.classList.remove('hidden');
-                ui.status.innerText = 'DRAFTING SCHEMATIC...';
-            } else if (action === 'intel') {
-                ui.intelPanel.classList.remove('hidden');
-                ui.intelContent.innerHTML = `<div class="animate-pulse flex space-y-4 flex-col"><div class="h-4 bg-white/10 rounded w-3/4"></div><div class="h-4 bg-white/10 rounded w-full"></div></div>`;
-            } else if (action === 'chat') {
-                query = ui.chatInput.value.trim();
-                if (!query) return;
-                ui.chatMessages.innerHTML += `<div class="p-2 border border-white/10 bg-white/5 rounded text-right text-brand-yellow font-bold">${query}</div>`;
-                ui.chatInput.value = '';
-                ui.chatMessages.innerHTML += `<div id="typing-indicator" class="p-2 text-brand-cyan/50 animate-pulse">Consultant is typing...</div>`;
-                ui.chatMessages.scrollTop = ui.chatMessages.scrollHeight;
-            }
+            // 2. Build Card ID and display Queue
+            generationCount++;
+            const cardId = `gen-card-${generationCount}`;
+            const queueContainer = document.getElementById('generation-queue');
+            queueContainer.classList.remove('hidden');
 
+            // 3. Store Image safely in memory map
+            generationData[cardId] = { originalImage: currentImage };
+
+            // 4. Inject Dynamic Card into the Grid
+            const cardHTML = `
+                <div id="${cardId}" class="tech-border bg-brand-panel rounded-lg overflow-hidden h-[380px] flex flex-col relative shadow-xl">
+                    <!-- Header -->
+                    <div class="flex-none p-2 bg-brand-darkBlue border-b border-white/10 flex justify-between items-center z-20">
+                        <span class="font-mono text-[10px] text-brand-yellow font-bold uppercase tracking-widest" id="${cardId}-status">Drafting...</span>
+                        <div class="flex gap-2">
+                            <button id="${cardId}-download" class="hidden bg-brand-cyan text-brand-navy px-3 py-1 font-mono text-[10px] font-bold uppercase hover:bg-white transition-colors">Download</button>
+                            <button onclick="deleteCard('${cardId}')" class="text-white/40 hover:text-red-400">✕</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Viewport -->
+                    <div class="flex-grow relative blueprint-grid overflow-hidden group" id="${cardId}-container">
+                        <div id="${cardId}-loading" class="absolute inset-0 bg-brand-panel/80 z-40 flex flex-col items-center justify-center backdrop-blur-sm">
+                            <div class="w-8 h-8 border-2 border-brand-yellow/20 border-t-brand-yellow rounded-full animate-spin mb-2 shadow-[0_0_10px_#fbbf2444]"></div>
+                            <p class="font-mono text-brand-yellow animate-pulse tracking-[0.2em] text-[10px] font-bold uppercase">Processing Image</p>
+                        </div>
+                        
+                        <div class="absolute inset-0 bg-contain bg-no-repeat bg-center opacity-40" style="background-image: ${currentBgUrl}"></div>
+                        <div id="${cardId}-processed" class="absolute inset-0 bg-contain bg-no-repeat bg-center bg-brand-panel transition-opacity duration-700 border-r border-brand-yellow" style="width: 50%; opacity: 0;"></div>
+                        
+                        <div id="${cardId}-slider" class="absolute top-0 bottom-0 w-1 bg-transparent cursor-ew-resize hover:bg-brand-yellow/50 transition-colors z-30 hidden" style="left: 50%;">
+                            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-brand-yellow rounded-full flex items-center justify-center shadow-[0_0_10px_#fbbf24] border border-white">
+                                <svg class="w-3 h-3 text-brand-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" transform="rotate(90 12 12)" /></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer Toolbar (Hidden until complete) -->
+                    <div id="${cardId}-toolbar" class="hidden flex-none p-2 bg-brand-darkBlue border-t border-white/10 justify-between gap-2 z-20">
+                        <button onclick="triggerIntelligenceReport('${cardId}')" class="flex-1 bg-brand-panel border border-brand-yellow/30 text-brand-yellow font-mono text-[9px] font-bold py-1.5 hover:bg-brand-yellow hover:text-brand-navy transition-colors tracking-widest">SITE INTEL</button>
+                        <button onclick="openChat('${cardId}')" class="flex-1 bg-brand-panel border border-brand-cyan/30 text-brand-cyan font-mono text-[9px] font-bold py-1.5 hover:bg-brand-cyan hover:text-brand-navy transition-colors tracking-widest">AI CHAT</button>
+                    </div>
+                </div>
+            `;
+            queueContainer.insertAdjacentHTML('afterbegin', cardHTML);
+            
+            // Auto-scroll screen down to see it
+            document.getElementById(cardId).scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            setupCardSlider(cardId);
+
+            // 5. Connect to Server
             try {
-                // IMPORTANT: The frontend now safely calls YOUR secure backend, passing the image and action.
                 const response = await fetch('/api/engine', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: action, image: currentBase64, query: query })
+                    body: JSON.stringify({ action: 'generate', image: currentImage })
                 });
 
                 const data = await response.json();
+                
+                // If the user clicked X to delete the card while it was generating, stop here.
+                if (!document.getElementById(cardId)) return; 
+                
                 if (data.error) throw new Error(data.error);
 
-                // Handle Responses
-                if (action === 'generate') {
-                    ui.imgProcessed.style.backgroundImage = `url(data:image/png;base64,${data.image})`;
-                    ui.imgProcessed.style.opacity = '1';
-                    ui.sliderHandle.classList.remove('hidden');
-                    ui.status.innerText = 'DRAFTING COMPLETE';
-                    ui.status.className = 'text-white font-bold';
-                    ui.intelBtn.classList.remove('hidden');
-                    ui.resetBtn.classList.remove('hidden');
-                    ui.downloadBtn.classList.remove('hidden');
-                    ui.chatBtn.classList.remove('hidden');
-                } else if (action === 'intel') {
-                    let formattedText = data.text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-yellow">$1</strong>').replace(/\n/g, '<br><br>').replace(/\*/g, '•');
-                    ui.intelContent.innerHTML = formattedText;
-                } else if (action === 'chat') {
-                    document.getElementById('typing-indicator')?.remove();
-                    let formattedText = data.text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>').replace(/\n/g, '<br>');
-                    ui.chatMessages.innerHTML += `<div class="p-2 border border-brand-cyan/20 bg-brand-cyan/5 rounded leading-relaxed">${formattedText}</div>`;
-                    ui.chatMessages.scrollTop = ui.chatMessages.scrollHeight;
-                }
+                // Success! Update Card UI
+                document.getElementById(`${cardId}-loading`).classList.add('hidden');
+                
+                const processedEl = document.getElementById(`${cardId}-processed`);
+                processedEl.style.backgroundImage = `url(data:image/png;base64,${data.image})`;
+                processedEl.style.opacity = '1';
+                
+                document.getElementById(`${cardId}-slider`).classList.remove('hidden');
+                document.getElementById(`${cardId}-status`).innerText = 'Complete';
+                document.getElementById(`${cardId}-status`).classList.replace('text-brand-yellow', 'text-brand-cyan');
+                
+                // Show Toolkit
+                const toolbar = document.getElementById(`${cardId}-toolbar`);
+                toolbar.classList.remove('hidden');
+                toolbar.classList.add('flex');
+                
+                // Setup Download
+                const downloadBtn = document.getElementById(`${cardId}-download`);
+                downloadBtn.classList.remove('hidden');
+                downloadBtn.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = `data:image/png;base64,${data.image}`;
+                    a.download = `blueprint-${cardId}.png`;
+                    a.click();
+                };
+
             } catch (error) {
+                if (!document.getElementById(cardId)) return;
                 console.error("Engine Error:", error);
-                if (action === 'generate') {
-                    ui.status.innerText = 'ERROR: ' + error.message;
-                    ui.status.className = 'text-red-400 font-bold';
-                    ui.resetBtn.classList.remove('hidden');
-                } else if (action === 'intel') {
-                    ui.intelContent.innerHTML = `<span class="text-red-400">Error: ${error.message}</span>`;
-                } else if (action === 'chat') {
-                    document.getElementById('typing-indicator')?.remove();
-                    ui.chatMessages.innerHTML += `<div class="p-2 text-red-400 border border-red-500/30 rounded bg-red-500/10">Error: ${error.message}</div>`;
-                }
-            } finally {
-                if (action === 'generate') ui.loadingText.classList.add('hidden');
+                document.getElementById(`${cardId}-loading`).innerHTML = `<div class="text-red-400 font-mono text-[10px] p-4 text-center break-words w-full h-full flex flex-col items-center justify-center bg-brand-panel/95 border-2 border-red-500/20"><svg class="w-6 h-6 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>ERROR: ${error.message}</div>`;
+                document.getElementById(`${cardId}-status`).innerText = 'Failed';
+                document.getElementById(`${cardId}-status`).classList.replace('text-brand-yellow', 'text-red-500');
             }
         }
 
-        function togglePanel(id) { document.getElementById(id).classList.toggle('hidden'); }
-        function resetApp() { window.location.reload(); }
+        function deleteCard(cardId) {
+            document.getElementById(cardId).remove();
+            delete generationData[cardId];
+            
+            // Hide queue container if it's empty
+            if (Object.keys(generationData).length === 0) {
+                document.getElementById('generation-queue').classList.add('hidden');
+            }
+        }
 
-        // Slider logic
-        let isSliding = false;
-        ui.sliderHandle.addEventListener('mousedown', () => isSliding = true);
-        window.addEventListener('mouseup', () => isSliding = false);
-        window.addEventListener('mousemove', (e) => {
-            if (!isSliding) return;
-            const rect = ui.imgContainer.getBoundingClientRect();
-            const pct = (Math.max(0, Math.min(e.clientX - rect.left, rect.width)) / rect.width) * 100;
-            ui.sliderHandle.style.left = `${pct}%`; ui.imgProcessed.style.width = `${pct}%`;
-        });
+        function setupCardSlider(cardId) {
+            const sliderHandle = document.getElementById(`${cardId}-slider`);
+            const imgProcessed = document.getElementById(`${cardId}-processed`);
+            const container = document.getElementById(`${cardId}-container`);
+            
+            let isSliding = false;
+            sliderHandle.addEventListener('mousedown', () => isSliding = true);
+            window.addEventListener('mouseup', () => isSliding = false);
+            window.addEventListener('mousemove', (e) => {
+                if (!isSliding) return;
+                const rect = container.getBoundingClientRect();
+                const pct = (Math.max(0, Math.min(e.clientX - rect.left, rect.width)) / rect.width) * 100;
+                sliderHandle.style.left = `${pct}%`; 
+                imgProcessed.style.width = `${pct}%`;
+            });
+            
+            sliderHandle.addEventListener('touchstart', () => isSliding = true);
+            window.addEventListener('touchend', () => isSliding = false);
+            window.addEventListener('touchmove', (e) => {
+                if (!isSliding) return;
+                const rect = container.getBoundingClientRect();
+                const x = Math.max(0, Math.min(e.touches[0].clientX - rect.left, rect.width));
+                const pct = (x / rect.width) * 100;
+                sliderHandle.style.left = `${pct}%`;
+                imgProcessed.style.width = `${pct}%`;
+            });
+        }
+
+        // --- Targeted AI Features ---
+
+        async function triggerIntelligenceReport(cardId) {
+            const data = generationData[cardId];
+            if(!data) return;
+            
+            activeAnalysisImage = data.originalImage; 
+            
+            const panel = document.getElementById('ai-intelligence-panel');
+            const content = document.getElementById('ai-report-content');
+            
+            panel.classList.remove('hidden');
+            content.innerHTML = `<div class="animate-pulse flex space-y-4 flex-col"><div class="h-4 bg-brand-cyan/20 rounded w-3/4"></div><div class="h-4 bg-brand-cyan/20 rounded w-full"></div><div class="h-4 bg-brand-cyan/20 rounded w-5/6"></div></div>`;
+
+            try {
+                const response = await fetch('/api/engine', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'intel', image: activeAnalysisImage })
+                });
+                const resData = await response.json();
+                if (resData.error) throw new Error(resData.error);
+                
+                let formattedText = resData.text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-yellow">$1</strong>').replace(/\n/g, '<br><br>').replace(/\*/g, '•');
+                content.innerHTML = `<div class="mb-4 text-brand-yellow font-bold border-b border-brand-yellow/20 pb-2">-- Linked to Schematic #${cardId.split('-')[2]} --</div>` + formattedText;
+            } catch (error) {
+                content.innerHTML = `<span class="text-red-400">Error: ${error.message}</span>`;
+            }
+        }
+
+        function openChat(cardId) {
+            const data = generationData[cardId];
+            if(!data) return;
+            
+            activeAnalysisImage = data.originalImage;
+            
+            document.getElementById('ai-chat-bubble').classList.remove('hidden');
+            document.getElementById('chat-trigger-btn').classList.remove('hidden');
+            
+            const messages = document.getElementById('chat-messages');
+            messages.innerHTML += `<div class="p-2 border border-brand-cyan/20 bg-brand-cyan/5 rounded text-brand-cyan font-mono text-[10px] text-center my-2">-- Linked Chat to Schematic #${cardId.split('-')[2]} --</div>`;
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        async function sendChatMessage() {
+            if (!activeAnalysisImage) {
+                alert("Please select an AI CHAT button on a generated schematic first!");
+                return;
+            }
+            
+            const input = document.getElementById('chat-input');
+            const messages = document.getElementById('chat-messages');
+            const query = input.value.trim();
+            if (!query) return;
+
+            messages.innerHTML += `<div class="p-2 border border-white/10 bg-white/5 rounded text-right text-brand-yellow font-bold">${query}</div>`;
+            input.value = '';
+            messages.scrollTop = messages.scrollHeight;
+
+            messages.innerHTML += `<div id="typing-indicator" class="p-2 text-brand-cyan/50 animate-pulse">Consultant is typing...</div>`;
+            messages.scrollTop = messages.scrollHeight;
+
+            try {
+                const response = await fetch('/api/engine', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'chat', image: activeAnalysisImage, query: query })
+                });
+
+                const data = await response.json();
+                document.getElementById('typing-indicator')?.remove();
+                
+                if (data.error) throw new Error(data.error);
+
+                let formattedText = data.text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>').replace(/\n/g, '<br>');
+                messages.innerHTML += `<div class="p-2 border border-brand-cyan/20 bg-brand-cyan/5 rounded leading-relaxed">${formattedText}</div>`;
+                messages.scrollTop = messages.scrollHeight;
+            } catch (error) {
+                document.getElementById('typing-indicator')?.remove();
+                messages.innerHTML += `<div class="p-2 text-red-400 border border-red-500/30 rounded bg-red-500/10">Error: ${error.message}</div>`;
+            }
+        }
     </script>
 </body>
 </html>
